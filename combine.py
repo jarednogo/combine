@@ -1,4 +1,5 @@
 import sys
+import sgf
 
 # steps
 # 1. reduce games to main branch <-- done
@@ -16,7 +17,7 @@ class Node:
         return self.move + self.comment
 
 def create_sgf(root):
-    sgf = '''
+    sgf_text = '''
 (;GM[1]FF[4]CA[UTF-8]AP[CGoban:3]ST[2]
 RU[Japanese]SZ[19]KM[6.50]TM[1800]OT[3x30 byo-yomi]
 PW[White]PB[Black]'''
@@ -25,12 +26,12 @@ PW[White]PB[Black]'''
     while stack:
         cur = stack.pop()
         if cur in {"(", ")"}:
-            sgf += cur
+            sgf_text += cur
             continue
 
-        sgf += cur.move
+        sgf_text += cur.move
         if cur.comment:
-            sgf += f"C[{cur.comment}]"
+            sgf_text += f"C[{cur.comment}]"
         if len(cur.children) == 1:
             stack += cur.children
         else:
@@ -38,31 +39,33 @@ PW[White]PB[Black]'''
                 stack.append(")")
                 stack.append(ch)
                 stack.append("(")
-    sgf += ")"
-    return sgf
+    sgf_text += ")"
+    return sgf_text
 
 def parse_sgf(data):
     l = 50
-    w_index = data.find("PW")
-    b_index = data.find("PB")
-    w_string = data[w_index:w_index+l]
-    b_string = data[b_index:b_index+l]
-    w_end = w_string.find("]")
-    b_end = b_string.find("]")
+    p = sgf.Parser(data)
+    result = p.parse()
+    if result.type == "error":
+        return
+    root = result.value
+    pw = root.fields["PW"][0]
+    pb = root.fields["PB"][0]
 
-    pw = data[w_index+3:w_index+w_end]
-    pb = data[b_index+3:b_index+b_end]
-    lines = data.split("\n")
     moves = []
-    for line in lines:
-        if line.startswith(";") or line.startswith("(;"):
-            if line.startswith("("):
-                line = line[1:]
-            if line.startswith(";B") or line.startswith(";W"):
-                move = line[:6]
-                if move[-1] == "]":
-                    moves.append(move)
-        if line == "])":
+    cur = root
+    while len(moves) < 50:
+        if cur.value == None and cur.down:
+            cur = cur.down[0]
+        elif not cur.down:
+            break
+        c = "B"
+        if cur.color == 2:
+            c = "W"
+        moves.append(";" + c + "[" + sgf.coord2letters(cur.value) + "]")
+        if cur.down:
+            cur = cur.down[0]
+        else:
             break
     return moves, pb, pw
 
@@ -101,9 +104,9 @@ def ingest(games, filename):
 
     fix_comments(root)
 
-    sgf = create_sgf(root)
+    sgf_text = create_sgf(root)
     with open(filename, "w") as f:
-        f.write(sgf)
+        f.write(sgf_text)
 
 if __name__ == "__main__":
     b_games = []
@@ -122,6 +125,7 @@ if __name__ == "__main__":
         else:
             w_games.append(game)
         games.append(game)
+
 
     ingest(games, "output.sgf")
     ingest(b_games, "black.sgf")

@@ -1,0 +1,5 @@
+*.sgf
+*.sh
+games/
+output/
+__pycache__/
