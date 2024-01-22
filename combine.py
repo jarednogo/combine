@@ -112,6 +112,9 @@ if __name__ == "__main__":
     b_games = []
     w_games = []
     games = []
+    if not sys.argv[1:]:
+        print(f"Usage: {sys.argv[0]} [games] ...")
+        exit()
     for fname in sys.argv[1:]:
         with open(fname) as f:
             data = f.read()
@@ -120,7 +123,7 @@ if __name__ == "__main__":
         # truncate to 50 moves
         moves = moves[:50]
         game = (moves, pb, pw, base)
-        if pb.lower() == "jarstar":
+        if pb.lower() == "shin jinseo":
             b_games.append(game)
         else:
             w_games.append(game)
