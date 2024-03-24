@@ -15,6 +15,33 @@ class Node:
     def __repr__(self):
         return self.__str__()
 
+    def to_sgf(self):
+        r = ";"
+        #print(self.labels)
+        #print(self.triangles)
+        if self.value:
+            if self.color == 1:
+                r += "B"
+            else:
+                r += "W"
+            l = coord2letters(self.value)
+            r += f"[{l}]"
+        for key,values in self.fields.items():
+            r += key
+            for value in values:
+                if key == "C":
+                    v = value.replace("]", "\\]")
+                    r += f"[{v}]"
+                else:
+                    r += f"[{value}]"
+        for d in self.down:
+            if len(self.down) > 1:
+                r += "("
+            r += d.to_sgf()
+            if len(self.down) > 1:
+                r += ")"
+        return r
+
 class Coord:
     def __init__(self, x, y):
         self.x = x
@@ -31,6 +58,13 @@ class Expr:
     def __init__(self, typ, value):
         self.type = typ
         self.value = value
+
+    def create_sgf(self):
+        result = ""
+        if self.type == "branch":
+            return "(" + self.value.to_sgf() + ")"
+
+
 
 def iswhitespace(c):
     return c == "\n" or c == " " or c == "\t" or c == "\r"
@@ -53,6 +87,8 @@ class Parser:
     def __init__(self, text):
         self.text = text
         self.index = 0
+        self.row = 0
+        self.col = 1
 
     def parse(self):
         self.skip_whitespace()
@@ -126,7 +162,7 @@ class Parser:
             if c == "(" or c == ";" or c == ")":
                 break
             if c < "A" or c > "Z":
-                return Expr("error", "bad node (expected key)" + c)
+                return Expr("error", "bad node (expected key) " + f"(row={self.row}, col={self.col}) " + f"'{c}'" )
             result = self.parse_key()
             if result.type == "error":
                 return result
@@ -212,6 +248,10 @@ class Parser:
             return "\0"
         result = self.text[self.index]
         self.index+=1
+        self.col += 1
+        if result == "\n":
+            self.row += 1
+            self.col = 1
         return result
 
     def unread(self):
@@ -259,4 +299,11 @@ PW[ tony ]PB[jared ]
     return result.value
 
 if __name__ == '__main__':
-    test()
+    #test()
+    with open("test.sgf") as f:
+        data = f.read()
+
+    p = Parser(data)
+    result = p.parse()
+    if result.type == "error":
+        print(result)
