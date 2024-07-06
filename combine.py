@@ -1,5 +1,6 @@
 import sys
 import sgf
+import argparse
 
 # steps
 # 1. reduce games to main branch <-- done
@@ -112,10 +113,13 @@ if __name__ == "__main__":
     b_games = []
     w_games = []
     games = []
-    if not sys.argv[1:]:
-        print(f"Usage: {sys.argv[0]} [games] ...")
-        exit()
-    for fname in sys.argv[1:]:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("files", nargs="+")
+    parser.add_argument("--black", "-b")
+    parser.add_argument("--white", "-w")
+    args = parser.parse_args()
+
+    for fname in args.files:
         with open(fname) as f:
             data = f.read()
         base = fname.split("/")[-1]
@@ -123,12 +127,11 @@ if __name__ == "__main__":
         # truncate to 50 moves
         moves = moves[:50]
         game = (moves, pb, pw, base)
-        if pb.lower() == "shin jinseo":
+        if pb.lower() == args.black:
             b_games.append(game)
-        else:
+        if pw.lower() == args.white:
             w_games.append(game)
         games.append(game)
-
 
     ingest(games, "output.sgf")
     ingest(b_games, "black.sgf")
