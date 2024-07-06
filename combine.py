@@ -109,6 +109,13 @@ def ingest(games, filename):
     with open(filename, "w") as f:
         f.write(sgf_text)
 
+def has_prefix(moves, prefix):
+    if not prefix:
+        return True
+    prefix_moves = prefix.split(",")
+    ms = map(lambda x: x[3:5].lower(), moves[:len(prefix_moves)])
+    return all(map(lambda x: x[0]==x[1], zip(ms, prefix_moves)))
+
 if __name__ == "__main__":
     b_games = []
     w_games = []
@@ -117,6 +124,8 @@ if __name__ == "__main__":
     parser.add_argument("files", nargs="+")
     parser.add_argument("--black", "-b")
     parser.add_argument("--white", "-w")
+
+    parser.add_argument("--prefix")
     args = parser.parse_args()
 
     for fname in args.files:
@@ -126,6 +135,8 @@ if __name__ == "__main__":
         moves, pb, pw = parse_sgf(data)
         # truncate to 50 moves
         moves = moves[:50]
+        if not has_prefix(moves, args.prefix):
+            continue
         game = (moves, pb, pw, base)
         if pb.lower() == args.black:
             b_games.append(game)
